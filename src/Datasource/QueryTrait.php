@@ -552,6 +552,11 @@ trait QueryTrait
     {
         $resultSetClass = $this->_decoratorClass();
         if (in_array($method, get_class_methods($resultSetClass), true)) {
+            deprecationWarning(sprintf(
+                'Unable to call `%s()` directly on query instance. ' .
+                'You must call `all()` to retrieve the results first.',
+                $method
+            ));
             $results = $this->all();
 
             return $results->$method(...$arguments);

@@ -727,7 +727,7 @@ class CompositeKeysTest extends TestCase
         ]);
 
         /** @var \Cake\Datasource\EntityInterface[] $authors */
-        $authors = $table->find()->toList();
+        $authors = $table->find()->toArray();
         $result = $table->loadInto($authors, ['SiteArticles']);
 
         foreach ($authors as $k => $v) {
@@ -735,7 +735,7 @@ class CompositeKeysTest extends TestCase
         }
 
         /** @var \Cake\Datasource\EntityInterface[] $expected */
-        $expected = $table->find('all', ['contain' => ['SiteArticles']])->toList();
+        $expected = $table->find('all', ['contain' => ['SiteArticles']])->toArray();
         $this->assertEquals($expected, $result);
     }
 

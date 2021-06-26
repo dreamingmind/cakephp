@@ -893,7 +893,7 @@ class QueryTest extends TestCase
         $query = new Query($this->connection, $article);
 
         $firstCount = $query->count();
-        $firstResults = $query->toList();
+        $firstResults = $query->toArray();
 
         $this->assertEquals(3, $firstCount);
         $this->assertCount(3, $firstResults);
@@ -904,7 +904,7 @@ class QueryTest extends TestCase
         $this->assertSame($return, $query);
 
         $secondCount = $query->count();
-        $secondResults = $query->toList();
+        $secondResults = $query->toArray();
 
         $this->assertEquals(2, $secondCount);
         $this->assertCount(2, $secondResults);
@@ -1775,6 +1775,7 @@ class QueryTest extends TestCase
 
         $query->select(['s' => $query->func()->rand()]);
         $result = $query
+            ->all()
             ->extract('s')
             ->first();
 
@@ -1892,6 +1893,7 @@ class QueryTest extends TestCase
             ['take', 1, $collection],
             ['append', new \ArrayIterator(), $collection],
             ['compile', true, $collection],
+            ['isEmpty', true, true],
         ];
     }
 
@@ -1949,7 +1951,9 @@ class QueryTest extends TestCase
             ->with($arg, 99)
             ->will($this->returnValue($return));
 
-        $this->assertSame($return, $query->{$method}($arg, 99));
+        $this->deprecated(function () use ($return, $query, $method, $arg) {
+            $this->assertSame($return, $query->{$method}($arg, 99));
+        });
     }
 
     /**
@@ -2676,11 +2680,11 @@ class QueryTest extends TestCase
             'finder' => 'published',
         ]);
         $result = $table->find()->contain('Articles');
-        $this->assertCount(4, $result->extract('article')->filter()->toArray());
+        $this->assertCount(4, $result->all()->extract('article')->filter()->toArray());
         $table->Articles->updateAll(['published' => 'N'], ['1 = 1']);
 
         $result = $table->find()->contain('Articles');
-        $this->assertCount(0, $result->extract('article')->filter()->toArray());
+        $this->assertCount(0, $result->all()->extract('article')->filter()->toArray());
     }
 
     /**
@@ -2698,7 +2702,7 @@ class QueryTest extends TestCase
             ->contain(['Authors'])
             ->order(['Authors.id' => 'asc'])
             ->select(['Authors.id']);
-        $results = $query->extract('author.id')->toList();
+        $results = $query->all()->extract('author.id')->toList();
         $expected = [1, 1, 3];
         $this->assertEquals($expected, $results);
     }
@@ -2722,7 +2726,7 @@ class QueryTest extends TestCase
                     return $q->contain('Authors');
                 },
             ]);
-        $results = $query->extract('article.author.name')->toArray();
+        $results = $query->all()->extract('article.author.name')->toArray();
         $expected = ['mariano', 'mariano', 'larry', 'larry'];
         $this->assertEquals($expected, $results);
     }
@@ -3501,18 +3505,6 @@ class QueryTest extends TestCase
     }
 
     /**
-     * Tests that isEmpty() can be called on a query
-     *
-     * @return void
-     */
-    public function testIsEmpty()
-    {
-        $table = $this->getTableLocator()->get('articles');
-        $this->assertFalse($table->find()->isEmpty());
-        $this->assertTrue($table->find()->where(['id' => -1])->isEmpty());
-    }
-
-    /**
      * Tests that leftJoinWith() creates a left join with a given association and
      * that no fields from such association are loaded.
      *
@@ -3536,7 +3528,7 @@ class QueryTest extends TestCase
             3 => 1,
             4 => 0,
         ];
-        $this->assertEquals($expected, $results->combine('id', 'total_articles')->toArray());
+        $this->assertEquals($expected, $results->all()->combine('id', 'total_articles')->toArray());
         $fields = ['total_articles', 'id', 'name'];
         $this->assertEquals($fields, array_keys($results->first()->toArray()));
 
@@ -3545,7 +3537,7 @@ class QueryTest extends TestCase
             ->leftJoinWith('articles')
             ->where(['articles.id IS' => null]);
 
-        $this->assertEquals([2, 4], $results->extract('id')->toList());
+        $this->assertEquals([2, 4], $results->all()->extract('id')->toList());
         $this->assertEquals(['id', 'name'], array_keys($results->first()->toArray()));
 
         $results = $table
@@ -3554,7 +3546,7 @@ class QueryTest extends TestCase
             ->where(['articles.id IS NOT' => null])
             ->order(['authors.id']);
 
-        $this->assertEquals([1, 1, 3], $results->extract('id')->toList());
+        $this->assertEquals([1, 1, 3], $results->all()->extract('id')->toList());
         $this->assertEquals(['id', 'name'], array_keys($results->first()->toArray()));
     }
 
@@ -3587,7 +3579,7 @@ class QueryTest extends TestCase
             3 => 1,
             4 => 0,
         ];
-        $this->assertEquals($expected, $results->combine('id', 'tagged_articles')->toArray());
+        $this->assertEquals($expected, $results->all()->combine('id', 'tagged_articles')->toArray());
     }
 
     /**
@@ -3920,7 +3912,7 @@ class QueryTest extends TestCase
             })
             ->distinct(['authors.id']);
 
-        $this->assertEquals([1, 2, 4], $results->extract('id')->toList());
+        $this->assertEquals([1, 2, 4], $results->all()->extract('id')->toList());
 
         $results = $table->find()
             ->enableHydration(false)
@@ -3930,7 +3922,7 @@ class QueryTest extends TestCase
             ->matching('articles')
             ->distinct(['authors.id']);
 
-        $this->assertEquals([1], $results->extract('id')->toList());
+        $this->assertEquals([1], $results->all()->extract('id')->toList());
     }
 
     /**
